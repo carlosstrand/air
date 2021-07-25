@@ -49,7 +49,7 @@ func newLogger(cfg *Config) *logger {
 	}
 }
 
-func newLogFunc(colorname string, cfg cfgLog) logFunc {
+func newLogFunc(colorname string, cfg CfgLog) logFunc {
 	return func(msg string, v ...interface{}) {
 		// There are some escape sequences to format color in terminal, so cannot
 		// just trim new line from right.

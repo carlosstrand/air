@@ -13,7 +13,7 @@ const (
 )
 
 func getWindowsConfig() Config {
-	build := cfgBuild{
+	build := CfgBuild{
 		Cmd:          "go build -o ./tmp/main .",
 		Bin:          "./tmp/main",
 		Log:          "build-errors.log",

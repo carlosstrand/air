@@ -24,13 +24,13 @@ type Config struct {
 	Root        string   `toml:"root"`
 	TmpDir      string   `toml:"tmp_dir"`
 	TestDataDir string   `toml:"testdata_dir"`
-	Build       cfgBuild `toml:"build"`
-	Color       cfgColor `toml:"color"`
-	Log         cfgLog   `toml:"log"`
-	Misc        cfgMisc  `toml:"misc"`
+	Build       CfgBuild `toml:"build"`
+	Color       CfgColor `toml:"color"`
+	Log         CfgLog   `toml:"log"`
+	Misc        CfgMisc  `toml:"misc"`
 }
 
-type cfgBuild struct {
+type CfgBuild struct {
 	Cmd              string        `toml:"cmd"`
 	Bin              string        `toml:"bin"`
 	FullBin          string        `toml:"full_bin"`
@@ -49,7 +49,7 @@ type cfgBuild struct {
 	regexCompiled    []*regexp.Regexp
 }
 
-func (c *cfgBuild) RegexCompiled() ([]*regexp.Regexp, error) {
+func (c *CfgBuild) RegexCompiled() ([]*regexp.Regexp, error) {
 	if len(c.ExcludeRegex) > 0 && len(c.regexCompiled) == 0 {
 		c.regexCompiled = make([]*regexp.Regexp, 0, len(c.ExcludeRegex))
 		for _, s := range c.ExcludeRegex {
@@ -63,11 +63,11 @@ func (c *cfgBuild) RegexCompiled() ([]*regexp.Regexp, error) {
 	return c.regexCompiled, nil
 }
 
-type cfgLog struct {
+type CfgLog struct {
 	AddTime bool `toml:"time"`
 }
 
-type cfgColor struct {
+type CfgColor struct {
 	Main    string `toml:"main"`
 	Watcher string `toml:"watcher"`
 	Build   string `toml:"build"`
@@ -75,7 +75,7 @@ type cfgColor struct {
 	App     string `toml:"app"`
 }
 
-type cfgMisc struct {
+type CfgMisc struct {
 	CleanOnExit bool `toml:"clean_on_exit"`
 }
 
@@ -166,7 +166,7 @@ func readConfByName(name string) (*Config, error) {
 }
 
 func defaultConfig() Config {
-	build := cfgBuild{
+	build := CfgBuild{
 		Cmd:          "go build -o ./tmp/main .",
 		Bin:          "./tmp/main",
 		Log:          "build-errors.log",
@@ -180,16 +180,16 @@ func defaultConfig() Config {
 		build.Bin = `tmp\main.exe`
 		build.Cmd = "go build -o ./tmp/main.exe ."
 	}
-	log := cfgLog{
+	log := CfgLog{
 		AddTime: false,
 	}
-	color := cfgColor{
+	color := CfgColor{
 		Main:    "magenta",
 		Watcher: "cyan",
 		Build:   "yellow",
 		Runner:  "green",
 	}
-	misc := cfgMisc{
+	misc := CfgMisc{
 		CleanOnExit: false,
 	}
 	return Config{
