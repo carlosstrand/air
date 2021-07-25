@@ -15,8 +15,8 @@ func TestNewEngine(t *testing.T) {
 	if engine.logger == nil {
 		t.Fatal("logger should not be nil")
 	}
-	if engine.config == nil {
-		t.Fatal("config should not be nil")
+	if engine.Config == nil {
+		t.Fatal("Config should not be nil")
 	}
 	if engine.watcher == nil {
 		t.Fatal("watcher should not be nil")
@@ -56,7 +56,7 @@ func TestRegexes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Should not be fail: %s.", err)
 	}
-	engine.config.Build.ExcludeRegex = []string{"foo.html$", "bar"}
+	engine.Config.Build.ExcludeRegex = []string{"foo.html$", "bar"}
 
 	result, err := engine.isExcludeRegex("./test/foo.html")
 	if err != nil {

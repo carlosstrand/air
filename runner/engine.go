@@ -13,7 +13,7 @@ import (
 
 // Engine ...
 type Engine struct {
-	config    *config
+	Config    *Config
 	logger    *logger
 	watcher   *fsnotify.Watcher
 	debugMode bool
@@ -36,19 +36,21 @@ type Engine struct {
 
 // NewEngine ...
 func NewEngine(cfgPath string, debugMode bool) (*Engine, error) {
-	var err error
 	cfg, err := initConfig(cfgPath)
 	if err != nil {
 		return nil, err
 	}
+	return NewEngineFromConfig(cfg, debugMode)
+}
 
+func NewEngineFromConfig(cfg *Config, debugMode bool) (*Engine, error) {
 	logger := newLogger(cfg)
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, err
 	}
 	e := Engine{
-		config:         cfg,
+		Config:         cfg,
 		logger:         logger,
 		watcher:        watcher,
 		debugMode:      debugMode,
@@ -77,13 +79,13 @@ func (e *Engine) Run() {
 		return
 	}
 
-	e.mainDebug("CWD: %s", e.config.Root)
+	e.mainDebug("CWD: %s", e.Config.Root)
 
 	var err error
 	if err = e.checkRunEnv(); err != nil {
 		os.Exit(1)
 	}
-	if err = e.watching(e.config.Root); err != nil {
+	if err = e.watching(e.Config.Root); err != nil {
 		os.Exit(1)
 	}
 
@@ -92,7 +94,7 @@ func (e *Engine) Run() {
 }
 
 func (e *Engine) checkRunEnv() error {
-	p := e.config.tmpPath()
+	p := e.Config.tmpPath()
 	if _, err := os.Stat(p); os.IsNotExist(err) {
 		e.runnerLog("mkdir %s", p)
 		if err := os.Mkdir(p, 0755); err != nil {
@@ -111,12 +113,12 @@ func (e *Engine) watching(root string) error {
 		}
 		// exclude tmp dir
 		if e.isTmpDir(path) {
-			e.watcherLog("!exclude %s", e.config.rel(path))
+			e.watcherLog("!exclude %s", e.Config.rel(path))
 			return filepath.SkipDir
 		}
 		// exclude testdata dir
 		if e.isTestDataDir(path) {
-			e.watcherLog("!exclude %s", e.config.rel(path))
+			e.watcherLog("!exclude %s", e.Config.rel(path))
 			return filepath.SkipDir
 		}
 		// exclude hidden directories like .git, .idea, etc.
@@ -125,12 +127,12 @@ func (e *Engine) watching(root string) error {
 		}
 		// exclude user specified directories
 		if e.isExcludeDir(path) {
-			e.watcherLog("!exclude %s", e.config.rel(path))
+			e.watcherLog("!exclude %s", e.Config.rel(path))
 			return filepath.SkipDir
 		}
 		isIn, walkDir := e.checkIncludeDir(path)
 		if !walkDir {
-			e.watcherLog("!exclude %s", e.config.rel(path))
+			e.watcherLog("!exclude %s", e.Config.rel(path))
 			return filepath.SkipDir
 		}
 		if isIn {
@@ -152,12 +154,12 @@ func (e *Engine) cacheFileChecksums(root string) error {
 
 		if !info.Mode().IsRegular() {
 			if e.isTmpDir(path) || e.isTestDataDir(path) || isHiddenDirectory(path) || e.isExcludeDir(path) {
-				e.watcherDebug("!exclude checksum %s", e.config.rel(path))
+				e.watcherDebug("!exclude checksum %s", e.Config.rel(path))
 				return filepath.SkipDir
 			}
 
 			// Follow symbolic link
-			if e.config.Build.FollowSymlink && (info.Mode()&os.ModeSymlink) > 0 {
+			if e.Config.Build.FollowSymlink && (info.Mode()&os.ModeSymlink) > 0 {
 				link, err := filepath.EvalSymlinks(path)
 				if err != nil {
 					return err
@@ -177,7 +179,7 @@ func (e *Engine) cacheFileChecksums(root string) error {
 		}
 
 		if e.isExcludeFile(path) || !e.isIncludeExt(path) {
-			e.watcherDebug("!exclude checksum %s", e.config.rel(path))
+			e.watcherDebug("!exclude checksum %s", e.Config.rel(path))
 			return nil
 		}
 
@@ -186,7 +188,7 @@ func (e *Engine) cacheFileChecksums(root string) error {
 			return err
 		}
 		if excludeRegex {
-			e.watcherDebug("!exclude checksum %s", e.config.rel(path))
+			e.watcherDebug("!exclude checksum %s", e.Config.rel(path))
 			return nil
 		}
 
@@ -202,7 +204,7 @@ func (e *Engine) watchDir(path string) error {
 		e.watcherLog("failed to watching %s, error: %s", path, err.Error())
 		return err
 	}
-	e.watcherLog("watching %s", e.config.rel(path))
+	e.watcherLog("watching %s", e.Config.rel(path))
 
 	go func() {
 		e.withLock(func() {
@@ -214,7 +216,7 @@ func (e *Engine) watchDir(path string) error {
 			})
 		}()
 
-		if e.config.Build.ExcludeUnchanged {
+		if e.Config.Build.ExcludeUnchanged {
 			err := e.cacheFileChecksums(path)
 			if err != nil {
 				e.watcherLog("error building checksum cache: %v", err)
@@ -244,7 +246,7 @@ func (e *Engine) watchDir(path string) error {
 				if !e.isIncludeExt(ev.Name) {
 					break
 				}
-				e.watcherDebug("%s has changed", e.config.rel(ev.Name))
+				e.watcherDebug("%s has changed", e.Config.rel(ev.Name))
 				e.eventCh <- ev.Name
 			case err := <-e.watcher.Errors:
 				e.watcherLog("error: %s", err.Error())
@@ -262,7 +264,7 @@ func (e *Engine) watchNewDir(dir string, removeDir bool) {
 		return
 	}
 	if isHiddenDirectory(dir) || e.isExcludeDir(dir) {
-		e.watcherLog("!exclude %s", e.config.rel(dir))
+		e.watcherLog("!exclude %s", e.Config.rel(dir))
 		return
 	}
 	if removeDir {
@@ -286,7 +288,7 @@ func (e *Engine) isModified(filename string) bool {
 	}
 
 	if e.fileChecksums.updateFileChecksum(filename, newChecksum) {
-		e.watcherDebug("stored checksum for %s: %s", e.config.rel(filename), newChecksum)
+		e.watcherDebug("stored checksum for %s: %s", e.Config.rel(filename), newChecksum)
 		return true
 	}
 
@@ -305,18 +307,18 @@ func (e *Engine) start() {
 		case <-e.exitCh:
 			return
 		case filename = <-e.eventCh:
-			time.Sleep(e.config.buildDelay())
+			time.Sleep(e.Config.buildDelay())
 			e.flushEvents()
 			if !e.isIncludeExt(filename) {
 				continue
 			}
-			if e.config.Build.ExcludeUnchanged {
+			if e.Config.Build.ExcludeUnchanged {
 				if !e.isModified(filename) {
-					e.mainLog("skipping %s because contents unchanged", e.config.rel(filename))
+					e.mainLog("skipping %s because contents unchanged", e.Config.rel(filename))
 					continue
 				}
 			}
-			e.mainLog("%s has changed", e.config.rel(filename))
+			e.mainLog("%s has changed", e.Config.rel(filename))
 		case <-firstRunCh:
 			// go down
 			break
@@ -353,7 +355,7 @@ func (e *Engine) buildRun() {
 		e.canExit <- true
 		e.buildLog("failed to build, error: %s", err.Error())
 		_ = e.writeBuildErrorLog(err.Error())
-		if e.config.Build.StopOnError {
+		if e.Config.Build.StopOnError {
 			return
 		}
 	}
@@ -382,7 +384,7 @@ func (e *Engine) flushEvents() {
 func (e *Engine) building() error {
 	var err error
 	e.buildLog("building...")
-	cmd, stdout, stderr, err := e.startCmd(e.config.Build.Cmd)
+	cmd, stdout, stderr, err := e.startCmd(e.Config.Build.Cmd)
 	if err != nil {
 		return err
 	}
@@ -403,7 +405,7 @@ func (e *Engine) building() error {
 func (e *Engine) runBin() error {
 	var err error
 	e.runnerLog("running...")
-	cmd, stdout, stderr, err := e.startCmd(e.config.Build.Bin)
+	cmd, stdout, stderr, err := e.startCmd(e.Config.Build.Bin)
 	if err != nil {
 		return err
 	}
@@ -442,12 +444,12 @@ func (e *Engine) runBin() error {
 		e.withLock(func() {
 			e.binRunning = false
 		})
-		cmdBinPath := cmdPath(e.config.rel(e.config.binPath()))
+		cmdBinPath := cmdPath(e.Config.rel(e.Config.binPath()))
 		if _, err = os.Stat(cmdBinPath); os.IsNotExist(err) {
 			return
 		}
 		if err = os.Remove(cmdBinPath); err != nil {
-			e.mainLog("failed to remove %s, error: %s", e.config.rel(e.config.binPath()), err)
+			e.mainLog("failed to remove %s, error: %s", e.Config.rel(e.Config.binPath()), err)
 		}
 	}(cmd, stdout, stderr)
 	return nil
@@ -474,9 +476,9 @@ func (e *Engine) cleanup() {
 		e.mainLog("failed to close watcher, error: %s", err.Error())
 	}
 
-	if e.config.Misc.CleanOnExit {
-		e.mainLog("deleting %s", e.config.tmpPath())
-		if err = os.RemoveAll(e.config.tmpPath()); err != nil {
+	if e.Config.Misc.CleanOnExit {
+		e.mainLog("deleting %s", e.Config.tmpPath())
+		if err = os.RemoveAll(e.Config.tmpPath()); err != nil {
 			e.mainLog("failed to delete tmp dir, err: %+v", err)
 		}
 	}

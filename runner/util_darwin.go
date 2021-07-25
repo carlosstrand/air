@@ -12,12 +12,12 @@ import (
 func (e *Engine) killCmd(cmd *exec.Cmd) (pid int, err error) {
 	pid = cmd.Process.Pid
 
-	if e.config.Build.SendInterrupt {
+	if e.Config.Build.SendInterrupt {
 		// Sending a signal to make it clear to the process that it is time to turn off
 		if err = syscall.Kill(-pid, syscall.SIGINT); err != nil {
 			return
 		}
-		time.Sleep(e.config.Build.KillDelay * time.Millisecond)
+		time.Sleep(e.Config.Build.KillDelay * time.Millisecond)
 	}
 	// https://stackoverflow.com/questions/22470193/why-wont-go-kill-a-child-process-correctly
 	err = syscall.Kill(-pid, syscall.SIGKILL)

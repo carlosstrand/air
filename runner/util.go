@@ -51,11 +51,11 @@ func (e *Engine) watcherDebug(format string, v ...interface{}) {
 }
 
 func (e *Engine) isTmpDir(path string) bool {
-	return path == e.config.tmpPath()
+	return path == e.Config.tmpPath()
 }
 
 func (e *Engine) isTestDataDir(path string) bool {
-	return path == e.config.TestDataPath()
+	return path == e.Config.TestDataPath()
 }
 
 func isHiddenDirectory(path string) bool {
@@ -67,8 +67,8 @@ func cleanPath(path string) string {
 }
 
 func (e *Engine) isExcludeDir(path string) bool {
-	cleanName := cleanPath(e.config.rel(path))
-	for _, d := range e.config.Build.ExcludeDir {
+	cleanName := cleanPath(e.Config.rel(path))
+	for _, d := range e.Config.Build.ExcludeDir {
 		if cleanName == d {
 			return true
 		}
@@ -78,8 +78,8 @@ func (e *Engine) isExcludeDir(path string) bool {
 
 // return isIncludeDir, walkDir
 func (e *Engine) checkIncludeDir(path string) (bool, bool) {
-	cleanName := cleanPath(e.config.rel(path))
-	iDir := e.config.Build.IncludeDir
+	cleanName := cleanPath(e.Config.rel(path))
+	iDir := e.Config.Build.IncludeDir
 	if len(iDir) == 0 { // ignore empty
 		return true, true
 	}
@@ -103,7 +103,7 @@ func (e *Engine) checkIncludeDir(path string) (bool, bool) {
 
 func (e *Engine) isIncludeExt(path string) bool {
 	ext := filepath.Ext(path)
-	for _, v := range e.config.Build.IncludeExt {
+	for _, v := range e.Config.Build.IncludeExt {
 		if ext == "."+strings.TrimSpace(v) {
 			return true
 		}
@@ -112,7 +112,7 @@ func (e *Engine) isIncludeExt(path string) bool {
 }
 
 func (e *Engine) isExcludeRegex(path string) (bool, error) {
-	regexes, err := e.config.Build.RegexCompiled()
+	regexes, err := e.Config.Build.RegexCompiled()
 	if err != nil {
 		return false, err
 	}
@@ -125,8 +125,8 @@ func (e *Engine) isExcludeRegex(path string) (bool, error) {
 }
 
 func (e *Engine) isExcludeFile(path string) bool {
-	cleanName := cleanPath(e.config.rel(path))
-	for _, d := range e.config.Build.ExcludeFile {
+	cleanName := cleanPath(e.Config.rel(path))
+	for _, d := range e.Config.Build.ExcludeFile {
 		matched, err := filepath.Match(d, cleanName)
 		if err == nil && matched {
 			return true
@@ -137,7 +137,7 @@ func (e *Engine) isExcludeFile(path string) bool {
 
 func (e *Engine) writeBuildErrorLog(msg string) error {
 	var err error
-	f, err := os.OpenFile(e.config.buildLogPath(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(e.Config.buildLogPath(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
@@ -200,9 +200,9 @@ func cmdPath(path string) string {
 	return strings.Split(path, " ")[0]
 }
 
-func adaptToVariousPlatforms(c *config) {
-	// Fix the default configuration is not used in Windows
-	// Use the unix configuration on Windows
+func adaptToVariousPlatforms(c *Config) {
+	// Fix the default Configuration is not used in Windows
+	// Use the unix Configuration on Windows
 	if runtime.GOOS == PlatformWindows {
 
 		runName := "start"
@@ -239,7 +239,7 @@ func fileChecksum(filename string) (checksum string, err error) {
 	}
 
 	// If the file is empty, an editor might've been in the process of rewriting the file when we read it.
-	// This can happen often if editors are configured to run format after save.
+	// This can happen often if editors are Configured to run format after save.
 	// Instead of calculating a new checksum, we'll assume the file was unchanged, but return an error to force a rebuild anyway.
 	if len(contents) == 0 {
 		return "", errors.New("empty file, forcing rebuild without updating checksum")
